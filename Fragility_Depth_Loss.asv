@@ -1,0 +1,471 @@
+close all;
+clear;
+clc;
+
+a = readtable('Building_Components_Archetype_3.xlsx','Sheet','Sheet2');
+
+Meu_depth_N = a(:,5);
+Seg_depth_N = a(:,6);
+
+Meu_rc_N = a(:,20);
+Seg_rc_N = a(:,21);
+
+d = 0:0.01:10;
+n_depth = length(d);
+n_comp = height(a);
+n_sim = 1e3;
+n_DS = 5;
+cn = 58;
+Re_failure_depth = zeros(n_sim,n_comp);
+Replacement_Cost = zeros(n_sim,n_comp);
+for k = 1:n_comp
+    Replacement_Cost(:,k) = abs(normrnd(Meu_rc_N{k,:},Seg_rc_N{k,:},[1,n_sim]));
+
+    Re_failure_depth(:,k) = abs(normrnd(Meu_depth_N{k,:},Seg_depth_N{k,:},[1,n_sim]));
+end
+%%
+%%%%%%%%%%%
+figure(1)
+histogram(Replacement_Cost(:,cn),1000)
+set(gcf,'color','w')
+ax = gca;
+ax.FontSize = 28;
+ax.Box = 'on';
+ax.LineWidth = 2.0;
+H = gcf;
+H.WindowState = 'maximized';
+%%
+
+Dm = zeros(n_sim,n_depth,n_comp);
+for i=1:n_sim
+    for j=1:n_depth
+        for k=1:n_comp
+            if d(j)>Re_failure_depth(i,k)
+                Dm(i,j,k) = 1;
+            end
+        end
+    end
+end
+%%
+for k=1:n_comp
+    for j=1:n_depth
+        f=0;
+        for i=1:n_sim
+            if Dm(i,j,k) > 0
+                f=f+1;
+            end
+        end
+        PF_C(k,j) = f/n_sim;
+        ReCo(k,j,:) = PF_C(k,j).*Replacement_Cost(:,k);
+        Mean_ReCo(k,j) = mean(ReCo(k,j,:),3);
+        Std_ReCo(k,j) = std(ReCo(k,j,:),0,3);
+    end
+    %%%%%%%%%%%
+    figure(2)
+    plot(d,PF_C(k,:),'LineWidth', 1.2); hold on
+    ax = gca;
+    ax.FontSize = 28;
+    ax.Box = 'on';
+    ax.LineWidth = 2.0;
+    H = gcf;
+    H.WindowState = 'maximized';
+    xlabel('Flood Depth (m)','FontName','Times New Roman','FontSize',14)
+    ylabel('Probability of Failure','FontName','Times New Roman','FontSize',14)
+    set(gca,'FontName','Times New Roman')
+    set(gcf,'color','w')
+    hold on
+
+    %%%%%%%%%%%
+    figure(3)
+    shadedErrorBar(d,Mean_ReCo(k,:),Std_ReCo(k,:),'transparent',1);hold on
+    plot(d,Mean_ReCo(k,:),'LineWidth', 1.2)
+    ax = gca;
+    ax.FontSize = 28;
+    ax.Box = 'on';
+    ax.LineWidth = 2.0;
+    H = gcf;
+    H.WindowState = 'maximized';
+    xlabel('Flood Depth (m)','FontName','Times New Roman','FontSize',14)
+    ylabel('Component Loss ($)','FontName','Times New Roman','FontSize',14)
+    set(gca,'FontName','Times New Roman')
+    set(gcf,'color','w')
+    hold on
+end
+%%%%%%%%%%%
+figure(2)
+plot(d,PF_C(2,:),'color','b','LineWidth', 2); hold on
+plot(d,PF_C(9,:),'color','g','LineWidth', 2); hold on
+plot(d,PF_C(26,:),'color','y','LineWidth', 2); hold on
+plot(d,PF_C(37,:),'color','c','LineWidth', 2); hold on
+plot(d,PF_C(63,:),'color','m','LineWidth', 2); hold on
+plot(d,PF_C(94,:),'color','k','LineWidth', 2); hold on
+legend({'Grage (Drywall, insulation, painting)','AC Unit','Kitchen lower Cabinets','External Wall sheathing (DS2)','Wood Flooring/Tile flooring (Floor 2)'...
+    ,'Roof (Trusses)'},'FontName','Times New Roman','FontSize',8.5,'Location','southeast')
+hold on
+ax = gca;
+ax.FontSize = 28;
+ax.Box = 'on';
+ax.LineWidth = 2.0;
+H = gcf;
+H.WindowState = 'maximized';
+xlabel('Flood Depth (m)','FontName','Times New Roman','FontSize',14)
+ylabel('Probability of Failure','FontName','Times New Roman','FontSize',14)
+
+%%%%%%%%%%%
+figure(3)
+plot(d,Mean_ReCo(2,:),'color','b','LineWidth', 2); hold on
+plot(d,Mean_ReCo(9,:),'color','g','LineWidth', 2); hold on
+plot(d,Mean_ReCo(26,:),'color','y','LineWidth', 2); hold on
+plot(d,Mean_ReCo(37,:),'color','c','LineWidth', 2); hold on
+plot(d,Mean_ReCo(63,:),'color','m','LineWidth', 2); hold on
+plot(d,Mean_ReCo(94,:),'color','k','LineWidth', 2); hold on
+legend({'Grage (Drywall, insulation, painting)','AC Unit','Kitchen lower Cabinets','External Wall sheathing (DS2)','Wood Flooring/Tile flooring (Floor 2)'...
+    ,'Roof (Trusses)'},'FontName','Times New Roman','FontSize',8.5,'Location','northwest')
+hold on
+ax = gca;
+ax.FontSize = 28;
+ax.Box = 'on';
+ax.LineWidth = 2.0;
+H = gcf;
+H.WindowState = 'maximized';
+xlabel('Flood Depth (m)','FontName','Times New Roman','FontSize',14)
+ylabel('Component Loss (USD $)','FontName','Times New Roman','FontSize',14)
+
+%%%%%%%%%%%
+figure(4)
+plot(d,PF_C(cn,:))
+ax = gca;
+ax.FontSize = 28;
+ax.Box = 'on';
+ax.LineWidth = 2.0;
+H = gcf;
+H.WindowState = 'maximized';
+%%
+%%%%%%%%%%%
+figure(5)
+plot(d,reshape(ReCo(cn,:,:),n_depth,n_sim),'.','color',[0.5,0.5,0.95])
+shadedErrorBar(d,Mean_ReCo(cn,:),Std_ReCo(cn,:),'lineprops','r','transparent',1);
+hold on
+plot(d,Mean_ReCo(cn,:),'k')
+set(gcf,'color','w')
+ax = gca;
+ax.FontSize = 28;
+ax.Box = 'on';
+ax.LineWidth = 2.0;
+set(gca, 'FontName', 'Times New Roman');
+H = gcf;
+H.WindowState = 'maximized';
+
+%%
+Total_Building_Loss = sum(ReCo,1);
+Total_Building_Loss_M1 = reshape(Total_Building_Loss,n_depth,n_sim);
+
+Mean_Total_Building_Loss_M1 = mean(Total_Building_Loss_M1,2);
+Std_Total_Building_Loss_M1 = std(Total_Building_Loss_M1,0,2);
+
+%%%%%%%%%
+figure(6)
+plot(d,Total_Building_Loss_M1,'.','Color',[0.5,0.5,0.95])
+hold on
+shadedErrorBar(d,Mean_Total_Building_Loss_M1,Std_Total_Building_Loss_M1,'lineprops','r','transparent',1);
+plot(d,Mean_Total_Building_Loss_M1,'k','LineWidth',2)
+set(gcf,'color','w')
+hold on
+xlim([0 8])
+ylim([0 6.8e5])
+ax = gca;
+ax.FontSize = 28;
+ax.Box = 'on';
+ax.LineWidth = 2.0;
+set(gca, 'FontName', 'Times New Roman');
+H = gcf;
+H.WindowState = 'maximized';
+
+%%
+
+Mean_Total_Building_Loss_M2 = zeros(length(d),1);
+for j=1:n_depth
+    DS0(j)=0;DS1(j)=0;DS2(j)=0;DS3(j)=0;DS4(j)=0;
+    for k=1:6
+        DS0(j) = DS0(j)+PF_C(k,j).*a{k,20}/a{1,24};
+    end
+    for k=7:13
+        DS1(j) = DS1(j)+PF_C(k,j).*a{k,20}/a{7,24};
+    end
+    for k=14:41
+        DS2(j) = DS2(j)+PF_C(k,j).*a{k,20}/a{14,24};
+    end
+    for k=42:88
+        DS3(j) = DS3(j)+PF_C(k,j).*a{k,20}/a{42,24};
+    end
+    for k=89:94
+        DS4(j) = DS4(j)+PF_C(k,j).*a{k,20}/a{89,24};
+    end
+    Mean_Total_Building_Loss_M2(j,1) = (DS0(j)-DS1(j))*a{1,25} + (DS1(j)-DS2(j))*a{7,25}+ ...
+        (DS2(j)-DS3(j))*a{14,25} + (DS3(j)-DS4(j))*a{42,25} + DS4(j)*a{89,25};
+end
+DS = [DS0;DS1;DS2;DS3;DS4]';
+
+for i=1:5
+    [d_f,CDF(:,i),c(:,i)] = FitSearch(d,DS(:,i));
+    figure(7)
+    plot(d_f,CDF(:,i),'k','LineWidth', 1.5);hold on
+    plot(d,DS(:,i),'b--','LineWidth', 1.5);hold on
+    xlim([0 10])
+    ylim([0 1])
+    ax = gca;
+    ax.FontSize = 28;
+    ax.Box = 'on';
+    ax.LineWidth = 2.0;
+    set(gca, 'FontName', 'Times New Roman');
+    H = gcf;
+    H.WindowState = 'maximized';
+end
+
+d_f = d_f';
+DS_f = CDF(:,1:5);
+DS_f1= zeros(n_depth,n_DS);
+for j=1:n_depth
+    for i=1:5
+        DS_f1(j,i) = interp1(d_f,DS_f(:,i),d(j));
+    end
+    Mean_Total_Building_Loss_M2(j,1) = (DS_f1(j,1)-DS_f1(j,2))*a{1,25}+ (DS_f1(j,2)-DS_f1(j,3))*a{7,25} ...
+        + (DS_f1(j,3)-DS_f1(j,4))*a{14,25} + (DS_f1(j,4)-DS_f1(j,5))*a{42,25} + DS_f1(j,5)*a{89,25};
+end
+
+%%%%%%%%%%%
+figure(8)
+plot(d_f,DS_f(:,1),'b','LineWidth', 1.5);hold on
+plot(d_f,DS_f(:,2),'c','LineWidth', 1.5);hold on
+plot(d_f,DS_f(:,3),'g','LineWidth', 1.5);hold on
+plot(d_f,DS_f(:,4),'y','LineWidth', 1.5);hold on
+plot(d_f,DS_f(:,5),'r','LineWidth', 1.5);hold on
+plot(d,DS(:,1),'k--','LineWidth', 1.5);hold on
+plot(d,DS(:,2),'k--','LineWidth', 1.5);hold on
+plot(d,DS(:,3),'k--','LineWidth', 1.5);hold on
+plot(d,DS(:,4),'k--','LineWidth', 1.5);hold on
+plot(d,DS(:,5),'k--','LineWidth', 1.5);hold on
+legend({'DS0','DS1','DS2','DS3','DS4'}, 'Interpreter', 'latex', 'FontSize', 20,'Location','best')
+ax = gca;
+ax.FontSize = 28;
+ax.Box = 'on';
+ax.LineWidth = 2.0;
+set(gca, 'FontName', 'Times New Roman');
+H = gcf;
+H.WindowState = 'maximized';
+xlabel('Flood Depth (m)', 'Interpreter', 'latex', 'FontSize', 28)
+ylabel('Exceedance Probability of DS', 'Interpreter', 'latex', 'FontSize', 28)
+set(gcf,'color','w')
+xlim([0 10])
+ylim([0 1])
+
+
+%%%%%%%%%%%
+figure(9)
+plot(d_f,DS_f(:,1),'b','LineWidth', 1.5);hold on
+plot(d_f,DS_f(:,2),'c','LineWidth', 1.5);hold on
+plot(d_f,DS_f(:,3),'g','LineWidth', 1.5);hold on
+plot(d_f,DS_f(:,4),'y','LineWidth', 1.5);hold on
+plot(d_f,DS_f(:,5),'r','LineWidth', 1.5);hold on
+FFE_x = [1 1];
+FFE_y = [0 1];
+plot(FFE_x,FFE_y,'k','LineWidth', 0.5);hold on
+lightGrey0   = [0.95 0.95 0.95];
+lightGrey1   = [0.85 0.85 0.85];
+lightGrey2   = [0.75 0.75 0.75];
+lightGrey3   = [0.65 0.65 0.65];
+lightGrey4   = [0.55 0.55 0.55];
+lightGrey5   = [0.35 0.35 0.35];
+x_DS0 = [d_f;min(d_f);min(d_f)];
+y_DS0 = [DS_f(:,1);1;0];
+fill(x_DS0,y_DS0,lightGrey0)
+x_DS1 = [d_f;flip(d_f)];
+y_DS1 = [DS_f(:,1);flip(DS_f(:,2))];
+fill(x_DS1,y_DS1,lightGrey1)
+x_DS2 = [d_f;flip(d_f)];
+y_DS2 = [DS_f(:,2);flip(DS_f(:,3))];
+fill(x_DS2,y_DS2,lightGrey2)
+x_DS3 = [d_f;flip(d_f)];
+y_DS3 = [DS_f(:,3);flip(DS_f(:,4))];
+fill(x_DS3,y_DS3,lightGrey3)
+x_DS4 = [d_f;flip(d_f)];
+y_DS4 = [DS_f(:,4);flip(DS_f(:,5))];
+fill(x_DS4,y_DS4,lightGrey4)
+x_DS5 = [d_f;max(d_f);min(d_f)];
+y_DS5 = [DS_f(:,5);0;0];
+fill(x_DS5,y_DS5,lightGrey5)
+plot(d_f,DS_f(:,1),'b','LineWidth', 1.5);hold on
+plot(d_f,DS_f(:,2),'c','LineWidth', 1.5);hold on
+plot(d_f,DS_f(:,3),'g','LineWidth', 1.5);hold on
+plot(d_f,DS_f(:,4),'y','LineWidth', 1.5);hold on
+plot(d_f,DS_f(:,5),'r','LineWidth', 1.5);hold on
+plot(FFE_x,FFE_y,'k','LineWidth', 0.5);hold on
+legend({'DS0','DS1','DS2','DS3','DS4','FFE'}, 'Interpreter', 'latex', 'FontSize', 20,'Location','best')
+xlabel('Flood Depth (m)', 'Interpreter', 'latex', 'FontSize', 28)
+ylabel('Exceedance Probability of DS', 'Interpreter', 'latex', 'FontSize', 28)
+set(gcf,'color','w')
+xlim([0 10])
+ylim([0 1])
+ax = gca;
+ax.FontSize = 28;
+ax.Box = 'on';
+ax.LineWidth = 2.0;
+set(gca, 'FontName', 'Times New Roman');
+H = gcf;
+H.WindowState = 'maximized';
+
+%%
+Meu_rc_N = table2array(Meu_rc_N);
+Seg_rc_N = table2array(Seg_rc_N);
+
+Component_Loss = zeros(n_depth, n_sim, n_comp);
+for j = 1:n_depth
+    for i = 1:n_sim
+        for k = 1:n_comp
+            if Dm(i, j, k) > 0
+                mean_value = Meu_rc_N(k,1);
+                std_dev = Seg_rc_N(k,1);
+                Component_Loss(j,i,k) = abs(normrnd(mean_value, std_dev, 1));
+            end
+        end
+    end
+end
+
+
+%%
+Mean_Component_Loss_M3 = mean(Component_Loss,2);
+Std_Component_Loss_M3 = std(Component_Loss,0,2);
+
+%%%%%%%%%
+figure(10)
+plot(d,Component_Loss(:,:,cn),'.','color',[0.5,0.5,0.95])
+hold on
+shadedErrorBar(d,Mean_Component_Loss_M3(:,cn),Std_Component_Loss_M3(:,cn),'lineprops','r','transparent',1);
+plot(d,Mean_Component_Loss_M3(:,cn))
+hold on
+plot(d,Mean_ReCo(cn,:),'k','LineWidth', 2)
+set(gcf,'color','w')
+hold off
+xlim([0 8])
+ylim([0 a{cn,20} * 2]);
+ax = gca;
+ax.FontSize = 28;
+ax.Box = 'on';
+ax.LineWidth = 2.0;
+set(gca, 'FontName', 'Times New Roman');
+H = gcf;
+H.WindowState = 'maximized';
+
+%%
+Total_Building_Loss_M3 = sum(Component_Loss,3);
+Mean_Total_Building_Loss_M3 = mean(Total_Building_Loss_M3,2);
+Std_Total_Building_Loss_M3 = std(Total_Building_Loss_M3,0,2);
+
+%%%%%%%
+figure(11)
+p1 = plot(d,Total_Building_Loss_M3,'.','color',[0.5,0.5,0.95],'DisplayName','Random Loss');
+hold on
+shadedErrorBar(d,Mean_Total_Building_Loss_M3,Std_Total_Building_Loss_M3,'lineprops','r','transparent',1);
+p2 = plot(d,Mean_Total_Building_Loss_M3,'k','LineWidth', 2);
+xlim([0 10])
+ylim([0 550000])
+set(gcf,'color','w')
+ax = gca;
+ax.FontSize = 28;
+ax.Box = 'on';
+ax.LineWidth = 2.0;
+set(gca, 'FontName', 'Times New Roman');
+xlabel('Flood Depth (m)', 'Interpreter', 'latex', 'FontSize', 28)
+ylabel('Total Building Loss (USD $)', 'Interpreter', 'latex', 'FontSize', 28)
+H = gcf;
+H.WindowState = 'maximized';
+hold off
+
+
+%%%%%%%%
+figure(12); clf; hold on;
+scatter(d, Total_Building_Loss_M3 * 100 ./ a{89,25}, 10, [0.5, 0.5, 0.95], 'filled');
+shadedErrorBar(d, Mean_Total_Building_Loss_M3 * 100 ./ a{89,25}, ...
+               Std_Total_Building_Loss_M3 * 100 ./ a{89,25}, ...
+               'lineprops', {'r', 'LineWidth', 1.5}, 'transparent', 1);
+plot(d, Mean_Total_Building_Loss_M3 * 100 ./ a{89,25}, 'k', 'LineWidth', 2);
+plot(d, Mean_Total_Building_Loss_M2 * 100 ./ a{89,25}, 'b', 'LineWidth', 2);
+plot(d, Mean_Total_Building_Loss_M1 * 100 ./ a{89,25}, 'g', 'LineWidth', 2);
+Hz = readtable('Building_Components_Archetype_3', 'Sheet', 'Sheet3');
+if size(Hz, 2) >= 10  % Ensure Hz has at least 10 columns
+    plot(Hz{:,10}, Hz{:,8} * 100 ./ a{89,25}, 'color', [0.9, 0.2, 0.25], 'LineWidth', 2);
+else
+    warning('Hz table does not contain enough columns.');
+end
+xlim([0 9]);
+ylim([0 120]);
+xlabel('Flood Depth (m)', 'Interpreter', 'latex', 'FontSize', 28);
+ylabel('Total Building Loss (\%)', 'Interpreter', 'latex', 'FontSize', 28);
+ax = gca;
+ax.FontSize = 28;
+ax.Box = 'on';
+ax.LineWidth = 2.0;
+set(gca, 'FontName', 'Times New Roman');
+H = gcf;
+H.WindowState = 'maximized';
+set(gcf, 'Color', 'w');
+legend({'Raw Data', 'Mean (M3) ± Std', 'Mean (M3)', 'Mean (M2)', 'Mean (M1)', 'Building Data'}, ...
+       'Interpreter', 'latex', 'FontSize', 20, 'Location', 'best');
+
+%%
+%%%%%%%%%%%
+figure(13)
+plot(d,Mean_Total_Building_Loss_M3,'k','LineWidth', 2)
+hold on
+xlim([0 8])
+ylim([0 680000])
+plot(d,Mean_Total_Building_Loss_M2,'color',[0,0,1],'LineWidth', 2)
+xlabel('Flood Depth (m)', 'Interpreter', 'latex', 'FontSize', 28)
+ylabel('Total Building Loss (USD $)', 'Interpreter', 'latex', 'FontSize', 28)
+ax = gca;
+ax.FontSize = 28;
+ax.Box = 'on';
+ax.LineWidth = 2.0;
+set(gca, 'FontName', 'Times New Roman');
+H = gcf;
+H.WindowState = 'maximized';
+set(gcf,'color','w')
+hold on
+plot(d,Mean_Total_Building_Loss_M1,'g','LineWidth', 2)
+hold on
+
+
+%%
+%%%%%%%%%%
+figure(14)
+shadedErrorBar(d,Mean_ReCo(2,:),Std_ReCo(2,:),'transparent',1); hold on
+plot(d,Mean_ReCo(2,:),'LineWidth', 1.2)
+shadedErrorBar(d,Mean_ReCo(9,:),Std_ReCo(9,:),'transparent',1); hold on
+plot(d,Mean_ReCo(9,:),'LineWidth', 1.2)
+shadedErrorBar(d,Mean_ReCo(26,:),Std_ReCo(26,:),'transparent',1); hold on
+plot(d,Mean_ReCo(26,:),'LineWidth', 1.2)
+shadedErrorBar(d,Mean_ReCo(37,:),Std_ReCo(37,:),'transparent',1); hold on
+plot(d,Mean_ReCo(37,:),'LineWidth', 1.2)
+shadedErrorBar(d,Mean_ReCo(63,:),Std_ReCo(63,:),'transparent',1); hold on
+plot(d,Mean_ReCo(63,:),'LineWidth', 1.2)
+shadedErrorBar(d,Mean_ReCo(94,:),Std_ReCo(94,:),'transparent',1); hold on
+plot(d,Mean_ReCo(94,:),'LineWidth', 1.2)
+plot(d,Mean_ReCo(2,:),'color','b','LineWidth', 2); hold on
+plot(d,Mean_ReCo(9,:),'color','g','LineWidth', 2); hold on
+plot(d,Mean_ReCo(26,:),'color','y','LineWidth', 2); hold on
+plot(d,Mean_ReCo(37,:),'color','c','LineWidth', 2); hold on
+plot(d,Mean_ReCo(63,:),'color','m','LineWidth', 2); hold on
+plot(d,Mean_ReCo(94,:),'color','k','LineWidth', 2); hold on
+legend({'Garage (Drywall, insulation, painting)','AC Unit','Kitchen lower Cabinets','External Wall sheathing (DS2)','Wood Flooring/Tile flooring (Floor 2)'...
+    ,'Roof (Trusses)'}, 'Interpreter', 'latex', 'FontSize', 20,'Location','best')
+xlabel('Flood Depth (m)', 'Interpreter', 'latex', 'FontSize', 28)
+ylabel('Component Loss (USD $)', 'Interpreter', 'latex', 'FontSize', 28)
+ax = gca;
+ax.FontSize = 28;
+ax.Box = 'on';
+ax.LineWidth = 2.0;
+set(gca, 'FontName', 'Times New Roman');
+H = gcf;
+H.WindowState = 'maximized';
+set(gcf,'color','w')
+hold on
